@@ -11,7 +11,12 @@ import torch.nn as nn
 import torch.optim as optim
 import torch.nn.functional as F
 
-env = gym.make("CartPole-v1")
+from chopper_env import ChopperScape
+
+def flatten_state(state):
+    return torch.flatten(state)
+
+env = ChopperScape()
 
 # set up matplotlib
 is_ipython = "inline" in matplotlib.get_backend()
@@ -56,7 +61,6 @@ class DQN(nn.Module):
         x = F.relu(self.layer2(x))
         return self.layer3(x)
 
-
 # BATCH_SIZE is the number of transitions sampled from the replay buffer
 # GAMMA is the discount factor as mentioned in the previous section
 # EPS_START is the starting value of epsilon
@@ -75,12 +79,12 @@ LR = 1e-4
 # Get number of actions from gym action space
 n_actions = env.action_space.n
 # Get the number of state observations
-state, info = env.reset()
-n_observations = len(state)
-
-print(f"Number of observations: {n_observations}")
-print(f"State shape: {state}")
-print(f"State HEHE: {state.size}")
+state = env.reset()
+# n_observations = len(state)
+n_observations = state.size
+print(f'Number observation: {n_observations}')
+print(f'State shape: {state.shape}')
+print(f'State shape: {state.size}')
 
 policy_net = DQN(n_observations, n_actions).to(device)
 target_net = DQN(n_observations, n_actions).to(device)
@@ -105,16 +109,14 @@ def select_action(state):
             # t.max(1) will return the largest column value of each row.
             # second column on max result is index of where max element was
             # found, so we pick action with the larger expected reward.
-            action_values = policy_net(state)
-            print()
-            print(action_values)
-            print(f"action_values.size() = {action_values.size()}")
-            print(f"action_values.max(1) = {action_values.max(1)}")
-            print(f"action_values.max(1).indices = {action_values.max(1).indices}")
-            print(
-                f"action_values.max(1).indices.view(1, 1) = {action_values.max(1).indices.view(1, 1)}"
-            )
-            return action_values.max(1).indices.view(1, 1)
+            output = policy_net(state)
+            # print(f'output = {output}')
+            # print(f'output.size() = {output.size()}')
+            # print(f'output.max(0) = {output.max(0)}')
+            # print(f'output.max(0).indices = {output.max(0).indices}')
+            # print(f'output.max(0).indices.view(1, 1) = {output.max(0).indices.view(1, 1)}')
+            # print(output.max(1))
+            return output.max(0).indices.view(1, 1)
     else:
         return torch.tensor(
             [[env.action_space.sample()]], device=device, dtype=torch.long
@@ -209,11 +211,13 @@ else:
 for i_episode in range(num_episodes):
     print(f"Episode {i_episode}")
     # Initialize the environment and get it's state
-    state, info = env.reset()
+    state = env.reset()
     state = torch.tensor(state, dtype=torch.float32, device=device).unsqueeze(0)
+    state = torch.flatten(state)
+    print(f'HAHAHA: {state.size()}')
     for t in count():
         action = select_action(state)
-        observation, reward, terminated, truncated, _ = env.step(action.item())
+        observation, reward, terminated, truncated = env.step(action.item())
         reward = torch.tensor([reward], device=device)
         done = terminated or truncated
 
@@ -223,6 +227,7 @@ for i_episode in range(num_episodes):
             next_state = torch.tensor(
                 observation, dtype=torch.float32, device=device
             ).unsqueeze(0)
+            next_state = torch.flatten(next_state)
 
         # Store the transition in memory
         memory.push(state, action, next_state, reward)
