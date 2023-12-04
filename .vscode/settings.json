@@ -1,0 +1,3 @@
+{
+  "python.defaultInterpreterPath": "./experiment/conda_env/bin/python",
+}
