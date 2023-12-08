@@ -114,7 +114,7 @@ class DQNAgent(AbstractAgent[ObsType]):
                 # t.max(1) will return the largest column value of each row.
                 # second column on max result is index of where max element was
                 # found, so we pick action with the larger expected reward.
-                return self.policy_net(state).max(1).indices.view(1, 1) + self.env_action_space.start # ! Added `self.env_action_space.start` to match the action space
+                return self.policy_net(state).max(1).indices.view(1, 1)
         else:
             return torch.tensor(
                 [[self.env_action_space.sample()]], device=self.device, dtype=torch.long

@@ -26,3 +26,7 @@ class ExperimentArgs:
     """num_episodes is the number of episodes for which to run the environment when cuda is not available"""
     num_episodes_with_cuda: int = 500
     """num_episodes is the number of episodes for which to run the environment when cuda is available"""
+
+    # ===== Interaction Configuration =====
+    verbose: bool = False
+    """verbose determines whether to print debug information"""

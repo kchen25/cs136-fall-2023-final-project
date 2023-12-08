@@ -16,6 +16,7 @@ from nash_rl.environments.multi_agent_repeated_game import (
 from nash_rl.agents.abstract_agent import AbstractAgent
 from nash_rl.agents.dqn_agent import DQNAgent
 from nash_rl.agents.tft_agent import TFTAgent
+from nash_rl.agents.random_agent import RandomAgent
 from nash_rl.dqn_implementation.replay_memory import Transition
 from nash_rl.utils.experiment_args import ExperimentArgs
 from nash_rl.utils.plotting import plot_scores
@@ -29,7 +30,8 @@ AGENT_MEMORY_LENGTH = 5  # ! Edit for experiments
 GAME = ipd_game  # ! Edit to change games
 
 EXPERIMENT_ARGS = ExperimentArgs()
-EXPERIMENT_ARGS.gamma = 0.99  # ! Set up discount factor; edit for experiments
+EXPERIMENT_ARGS.gamma = 0.1  # ! Set up discount factor; edit for experiments
+EXPERIMENT_ARGS.verbose = False # ! Turn on for manual debugging
 
 # ! ========== NO MORE EXPERIMENT ARGS BELOW THIS LINE ==========
 
@@ -53,16 +55,12 @@ states, infos = parallel_env.reset()
 
 # ! ========== MAKE AGENTS HERE ==========
 
-print("Creating agents, observation spaces and action spaces")
-print(parallel_env.observation_space(0))
-print(parallel_env.action_space(0))
-
 agent_0 = DQNAgent(
     parallel_env.observation_space(0),
     cast(gym.spaces.Discrete, parallel_env.action_space(0)),
     EXPERIMENT_ARGS,
 )
-agent_1 = DQNAgent(
+agent_1 = TFTAgent(
     parallel_env.observation_space(1),
     cast(gym.spaces.Discrete, parallel_env.action_space(1)),
     EXPERIMENT_ARGS,
@@ -99,12 +97,6 @@ for i_episode in range(num_episodes):
         for agent_id in states.keys()
     }
     for t in count():
-        print(f"Round {t + 1}")
-        print(tensor_states[0])
-
-        if t == 10:
-            exit()  # TODO REMOVE DEBUG CODE
-
         actions = {
             agent_id: agents[agent_id].select_action(tensor_states[agent_id])
             for agent_id in tensor_states.keys()
@@ -117,6 +109,19 @@ for i_episode in range(num_episodes):
         observations, rewards, terminations, truncations, infos = parallel_env.step(
             action_ids
         )
+
+        if EXPERIMENT_ARGS.verbose:
+            print(f"========== Round {t + 1} ==========")
+            print("===== Observations =====")
+            print(observations)
+            print("===== Rewards =====")
+            print(rewards)
+            print("===== Terminations =====")
+            print(terminations)
+            print("===== Truncations =====")
+            print(truncations)
+            print("===== Infos =====")
+            print(infos)
 
         tensor_rewards = {
             agent_id: torch.tensor([reward], device=device)

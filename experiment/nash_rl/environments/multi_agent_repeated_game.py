@@ -50,7 +50,7 @@ def make_observation_from_prev_plays(
 
 
 def get_game_rewards(game: nash.Game, actions: npt.NDArray[np.int64]):
-    offsetted_actions = tuple(actions - 1)  # -1 to convert to 0-based index
+    offsetted_actions = tuple(actions)
     rewards = [
         game.payoff_matrices[agent_id][offsetted_actions]
         for agent_id in range(len(game.payoff_matrices))
@@ -98,7 +98,7 @@ class MultiAgentRepeatedGameEnvironment(ParallelEnv[AgentID, ObsType, ActionType
 
         self.possible_agents = [i for i in range(num_agents)]
         self.agents = self.possible_agents
-        self.action_spaces = {i: spaces.Discrete(num_actions[i], start=PHI_EMPTY_ACTION + 1) for i in self.agents}  # type: ignore
+        self.action_spaces = {i: spaces.Discrete(num_actions[i]) for i in self.agents}  # type: ignore
         self.observation_spaces = {  # type: ignore
             i: make_observation_space(num_actions, i, agent_memory_length)
             for i in self.agents
@@ -152,10 +152,12 @@ class MultiAgentRepeatedGameEnvironment(ParallelEnv[AgentID, ObsType, ActionType
         array_actions = np.asarray([actions[agent_id] for agent_id in self.agents])
         tuple_rewards = get_game_rewards(self.game, array_actions)
 
+        offset_actions = array_actions + 1
+
         self.previous_plays = (
-            np.concatenate((self.previous_plays, [array_actions]))
+            np.concatenate((self.previous_plays, [offset_actions]))
             if len(self.previous_plays) > 0
-            else np.asarray([array_actions])
+            else np.asarray([offset_actions])
         )
 
         observations = self._make_agent_observations()
