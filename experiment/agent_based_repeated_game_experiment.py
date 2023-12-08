@@ -94,7 +94,7 @@ for i_episode in range(num_episodes):
                 torch.tensor(
                     states[agent_id], dtype=torch.float32, device=device
                 ).unsqueeze(0)
-            )
+            ).unsqueeze(0)
         )
         for agent_id in states.keys()
     }
@@ -102,8 +102,8 @@ for i_episode in range(num_episodes):
         print(f"Round {t + 1}")
         print(tensor_states[0])
 
-        # if t == 10:
-        #     exit()  # TODO REMOVE DEBUG CODE
+        if t == 10:
+            exit()  # TODO REMOVE DEBUG CODE
 
         actions = {
             agent_id: agents[agent_id].select_action(tensor_states[agent_id])
@@ -136,7 +136,7 @@ for i_episode in range(num_episodes):
                     torch.tensor(
                         observation, dtype=torch.float32, device=device
                     ).unsqueeze(0)
-                )
+                ).unsqueeze(0)
                 for agent_id, observation in observations.items()
             }
 

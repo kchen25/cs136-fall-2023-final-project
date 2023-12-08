@@ -70,7 +70,12 @@ class DQNAgent(AbstractAgent[ObsType]):
     # Training tracking
     steps_done: int
 
-    def __init__(self, env_observation_space: gym.spaces.Space[ObsType], env_action_space: gym.spaces.Discrete, experiment_args: ExperimentArgs):
+    def __init__(
+        self,
+        env_observation_space: gym.spaces.Space[ObsType],
+        env_action_space: gym.spaces.Discrete,
+        experiment_args: ExperimentArgs,
+    ):
         # if GPU is to be used
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -97,7 +102,7 @@ class DQNAgent(AbstractAgent[ObsType]):
         EPS_END = self.experiment_args.epsilon_end
         EPS_START = self.experiment_args.epsilon_start
         EPS_DECAY = self.experiment_args.epsilon_decay
-    
+
         global steps_done
         sample = random.random()
         eps_threshold = EPS_END + (EPS_START - EPS_END) * math.exp(
@@ -109,7 +114,7 @@ class DQNAgent(AbstractAgent[ObsType]):
                 # t.max(1) will return the largest column value of each row.
                 # second column on max result is index of where max element was
                 # found, so we pick action with the larger expected reward.
-                return self.policy_net(state).max(1).indices.view(1, 1)
+                return self.policy_net(state).max(1).indices.view(1, 1) + self.env_action_space.start # ! Added `self.env_action_space.start` to match the action space
         else:
             return torch.tensor(
                 [[self.env_action_space.sample()]], device=self.device, dtype=torch.long
