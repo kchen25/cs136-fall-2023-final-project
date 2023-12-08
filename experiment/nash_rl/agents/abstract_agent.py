@@ -6,8 +6,8 @@ import gymnasium as gym
 import numpy as np
 import numpy.typing as npt
 
-from ..experiment_args import ExperimentArgs
-from ..pytorch_dqn.replay_memory import Transition
+from nash_rl.utils.experiment_args import ExperimentArgs
+from nash_rl.dqn_implementation.replay_memory import Transition
 
 ObsType = TypeVar("ObsType", npt.NDArray[np.int64], npt.NDArray[np.float64])
 ActionType = np.int64

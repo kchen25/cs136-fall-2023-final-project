@@ -1,9 +1,9 @@
 import torch
 import gymnasium as gym
 
-from experiment.experiment_args import ExperimentArgs
-from experiment.pytorch_dqn.replay_memory import Transition
-from experiment.strategies.base_strategy import AbstractAgent, ObsType
+from nash_rl.utils.experiment_args import ExperimentArgs
+from nash_rl.dqn_implementation.replay_memory import Transition
+from nash_rl.agents.abstract_agent import AbstractAgent, ObsType
 
 
 class TFTAgent(AbstractAgent[ObsType]):

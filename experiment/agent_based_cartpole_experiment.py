@@ -7,10 +7,10 @@ import numpy as np
 import numpy.typing as npt
 import torch
 
-from experiment.strategies.dqn_agent import DQNAgent
-from replay_memory import Transition
-from experiment.experiment_args import ExperimentArgs
-from plotting import plot_durations
+from nash_rl.agents.dqn_agent import DQNAgent
+from nash_rl.dqn_implementation.replay_memory import Transition
+from nash_rl.utils.experiment_args import ExperimentArgs
+from nash_rl.utils.plotting import plot_durations
 
 ObsType = npt.NDArray[Union[np.float64, np.int64]]
 ActionType = np.int64

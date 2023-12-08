@@ -7,21 +7,19 @@ import numpy as np
 import numpy.typing as npt
 import torch
 
-from enviornments.multi_agent_repeated_game import (
+from nash_rl.environments.multi_agent_repeated_game import (
     MultiAgentRepeatedGameEnvironment,
     ObsType,
     ActionType,
     PHI_EMPTY_ACTION,
 )
-
-from strategies.base_strategy import AbstractAgent
-from games import ipd_game
-
-from strategies.dqn_agent import DQNAgent
-from strategies.tft_agent import TFTAgent
-from pytorch_dqn.replay_memory import Transition
-from experiment_args import ExperimentArgs
-from utils.plotting import plot_scores
+from nash_rl.agents.abstract_agent import AbstractAgent
+from nash_rl.agents.dqn_agent import DQNAgent
+from nash_rl.agents.tft_agent import TFTAgent
+from nash_rl.dqn_implementation.replay_memory import Transition
+from nash_rl.utils.experiment_args import ExperimentArgs
+from nash_rl.utils.plotting import plot_scores
+from nash_rl.games import ipd_game
 
 NUM_AGENTS = 2  # ! DO NOT EDIT, NASHPY ONLY SUPPORTS 2 AGENTS
 
@@ -60,7 +58,7 @@ agent_0 = DQNAgent(
     cast(gym.spaces.Discrete, parallel_env.action_space(0)),
     EXPERIMENT_ARGS,
 )
-agent_1 = TFTAgent(
+agent_1 = DQNAgent(
     parallel_env.observation_space(1),
     cast(gym.spaces.Discrete, parallel_env.action_space(1)),
     EXPERIMENT_ARGS,

@@ -9,9 +9,9 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 
-from experiment.experiment_args import ExperimentArgs
-from experiment.strategies.base_strategy import AbstractAgent, ObsType, ActionType
-from replay_memory import ReplayMemory, Transition
+from nash_rl.utils.experiment_args import ExperimentArgs
+from nash_rl.agents.abstract_agent import AbstractAgent, ObsType, ActionType
+from nash_rl.dqn_implementation.replay_memory import ReplayMemory, Transition
 
 
 # ========== Neural Network Implementation ==========

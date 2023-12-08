@@ -12,7 +12,7 @@ import torch.nn as nn
 import torch.optim as optim
 
 from replay_memory import ReplayMemory, Transition
-from experiment.experiment_args import ExperimentArgs
+from experiment.nash_rl.utils.experiment_args import ExperimentArgs
 from plotting import plot_durations
 
 ObsType = npt.NDArray[Union[np.float64, np.int64]]
