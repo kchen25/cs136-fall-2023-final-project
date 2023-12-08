@@ -53,6 +53,10 @@ states, infos = parallel_env.reset()
 
 # ! ========== MAKE AGENTS HERE ==========
 
+print("Creating agents, observation spaces and action spaces")
+print(parallel_env.observation_space(0))
+print(parallel_env.action_space(0))
+
 agent_0 = DQNAgent(
     parallel_env.observation_space(0),
     cast(gym.spaces.Discrete, parallel_env.action_space(0)),
@@ -86,13 +90,21 @@ for i_episode in range(num_episodes):
     states, infos = parallel_env.reset()
     tensor_states: dict[int, torch.Tensor] = {
         agent_id: (
-            torch.tensor(
-                states[agent_id], dtype=torch.float32, device=device
-            ).unsqueeze(0)
+            torch.flatten(
+                torch.tensor(
+                    states[agent_id], dtype=torch.float32, device=device
+                ).unsqueeze(0)
+            )
         )
         for agent_id in states.keys()
     }
     for t in count():
+        print(f"Round {t + 1}")
+        print(tensor_states[0])
+
+        # if t == 10:
+        #     exit()  # TODO REMOVE DEBUG CODE
+
         actions = {
             agent_id: agents[agent_id].select_action(tensor_states[agent_id])
             for agent_id in tensor_states.keys()
@@ -120,9 +132,11 @@ for i_episode in range(num_episodes):
             next_states = None
         else:
             next_states = {
-                agent_id: torch.tensor(
-                    observation, dtype=torch.float32, device=device
-                ).unsqueeze(0)
+                agent_id: torch.flatten(
+                    torch.tensor(
+                        observation, dtype=torch.float32, device=device
+                    ).unsqueeze(0)
+                )
                 for agent_id, observation in observations.items()
             }
 

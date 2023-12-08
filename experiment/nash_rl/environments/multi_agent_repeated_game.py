@@ -44,8 +44,8 @@ def make_observation_from_prev_plays(
         plays_array = (
             np.concatenate((padding, plays_array)) if len(plays_array) > 0 else padding
         )
-    player_plays = plays_array[:, agent_id : agent_id + 1]
-    others_plays = np.delete(plays_array, agent_id, axis=1)
+    player_plays = plays_array[-agent_memory_length:, agent_id : agent_id + 1]
+    others_plays = np.delete(plays_array, agent_id, axis=1)[-agent_memory_length:, :]
     return np.concatenate((player_plays, others_plays), axis=1)
 
 
