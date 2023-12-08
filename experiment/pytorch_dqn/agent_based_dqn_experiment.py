@@ -6,10 +6,10 @@ from typing import cast, Union, Optional
 import numpy as np
 import numpy.typing as npt
 import torch
-from experiment.pytorch_dqn.dqn_agent import DQNAgent
+from dqn_agent import DQNAgent
 
-from experiment.pytorch_dqn.replay_memory import Transition
-from experiment.pytorch_dqn.experiment_args import ExperimentArgs
+from replay_memory import Transition
+from experiment_args import ExperimentArgs
 from plotting import plot_durations
 
 ObsType = npt.NDArray[Union[np.float64, np.int64]]

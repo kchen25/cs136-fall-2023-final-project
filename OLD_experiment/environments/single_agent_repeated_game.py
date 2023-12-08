@@ -4,7 +4,7 @@ import gymnasium as gym
 import numpy as np
 import numpy.typing as npt
 
-from .multi_agent_repeated_game import MultiAgentRepeatedGameEnvironment
+from ...experiment.enviornments.multi_agent_repeated_game import MultiAgentRepeatedGameEnvironment
 
 class SingleAgentRepeatedGameEnvironment(gym.Env[npt.NDArray[np.int64], int]):
     metadata = {

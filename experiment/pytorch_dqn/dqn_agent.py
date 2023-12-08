@@ -10,7 +10,7 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 
-from replay_memory import ReplayMemory, Transition
+from experiment.pytorch_dqn.replay_memory import ReplayMemory, Transition
 
 
 BATCH_SIZE = 128
