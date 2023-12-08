@@ -16,22 +16,24 @@ from nash_rl.environments.multi_agent_repeated_game import (
 from nash_rl.agents.abstract_agent import AbstractAgent
 from nash_rl.agents.dqn_agent import DQNAgent
 from nash_rl.agents.tft_agent import TFTAgent
+from nash_rl.agents.pavlov_agent import PavlovAgent
 from nash_rl.agents.random_agent import RandomAgent
 from nash_rl.dqn_implementation.replay_memory import Transition
 from nash_rl.utils.experiment_args import ExperimentArgs
 from nash_rl.utils.plotting import plot_scores
 from nash_rl.games import ipd_game
+from nash_rl.games import chicken_game
 
 NUM_AGENTS = 2  # ! DO NOT EDIT, NASHPY ONLY SUPPORTS 2 AGENTS
 
 # ! ========== SET EXPERIMENT ARGS HERE ==========
 
 AGENT_MEMORY_LENGTH = 5  # ! Edit for experiments
-GAME = ipd_game  # ! Edit to change games
+GAME = chicken_game  # ! Edit to change games
 
 EXPERIMENT_ARGS = ExperimentArgs()
 EXPERIMENT_ARGS.gamma = 0.1  # ! Set up discount factor; edit for experiments
-EXPERIMENT_ARGS.verbose = False # ! Turn on for manual debugging
+EXPERIMENT_ARGS.verbose = True # ! Turn on for manual debugging
 
 # ! ========== NO MORE EXPERIMENT ARGS BELOW THIS LINE ==========
 
@@ -60,7 +62,7 @@ agent_0 = DQNAgent(
     cast(gym.spaces.Discrete, parallel_env.action_space(0)),
     EXPERIMENT_ARGS,
 )
-agent_1 = TFTAgent(
+agent_1 = DQNAgent(
     parallel_env.observation_space(1),
     cast(gym.spaces.Discrete, parallel_env.action_space(1)),
     EXPERIMENT_ARGS,
