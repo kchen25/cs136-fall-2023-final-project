@@ -3,7 +3,6 @@ import os
 import random
 import time
 from dataclasses import dataclass
-from typing import Optional
 
 import gymnasium as gym
 import numpy as np
@@ -26,11 +25,11 @@ class Args:
     """if toggled, `torch.backends.cudnn.deterministic=False`"""
     cuda: bool = True
     """if toggled, cuda will be enabled by default"""
-    track: bool = False  # ! REMOVE
-    """if toggled, this experiment will be tracked with Weights and Biases"""  # ! REMOVE
-    wandb_project_name: str = "cleanRL"  # ! REMOVE
-    """the wandb's project name"""  # ! REMOVE
-    wandb_entity: Optional[str] = None  # ! REMOVE
+    track: bool = False
+    """if toggled, this experiment will be tracked with Weights and Biases"""
+    wandb_project_name: str = "cleanRL"
+    """the wandb's project name"""
+    wandb_entity: str = None
     """the entity (team) of wandb's project"""
     capture_video: bool = True
     """whether to capture videos of the agent performances (check out `videos` folder)"""

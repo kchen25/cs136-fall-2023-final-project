@@ -4,7 +4,7 @@ import numpy as np
 import numpy.typing as npt
 import nashpy as nash
 
-from repeated_game import RepeatedGameEnvironment, get_game_rewards
+from experiment.environments.multi_agent_repeated_game import RepeatedGameEnvironment, get_game_rewards
 
 # Utilities
 
