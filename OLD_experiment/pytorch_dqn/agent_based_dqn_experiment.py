@@ -29,7 +29,7 @@ state, info = env.reset()
 env_observation_space = env.observation_space
 env_action_space = cast(gym.spaces.Discrete, env.action_space)
 
-agent = DQNAgent(env)
+agent = DQNAgent(env.observation_space, cast(gym.spaces.Discrete, env.action_space))
 
 
 episode_durations: list[int] = []

@@ -77,7 +77,8 @@ def make_agent_network_for_env(
 class DQNAgent(Generic[ObsType]):
     device: torch.device  # Device
 
-    env: gym.Env[ObsType, ActionType]  # Environment
+    env_observation_space: gym.spaces.Space[ObsType]  # Observation Space
+    env_action_space: gym.spaces.Discrete  # Action Space
 
     # Networks
     policy_net: DQN[ObsType]
@@ -89,20 +90,18 @@ class DQNAgent(Generic[ObsType]):
     # Training tracking
     steps_done: int
 
-    def __init__(self, env: gym.Env[ObsType, ActionType]):
-        env_observation_space = env.observation_space
-        env_action_space = cast(gym.spaces.Discrete, env.action_space)
-
+    def __init__(self, env_observation_space: gym.spaces.Space[ObsType], env_action_space: gym.spaces.Discrete):
         # if GPU is to be used
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-        self.env = env
+        self.env_observation_space = env_observation_space
+        self.env_action_space = env_action_space
 
         self.policy_net = make_agent_network_for_env(
-            env_observation_space, env_action_space
+            self.env_observation_space, self.env_action_space
         ).to(self.device)
         self.target_net = make_agent_network_for_env(
-            env_observation_space, env_action_space
+            self.env_observation_space, self.env_action_space
         ).to(self.device)
         self.target_net.load_state_dict(self.policy_net.state_dict())
 
@@ -126,7 +125,7 @@ class DQNAgent(Generic[ObsType]):
                 return self.policy_net(state).max(1).indices.view(1, 1)
         else:
             return torch.tensor(
-                [[self.env.action_space.sample()]], device=self.device, dtype=torch.long
+                [[self.env_action_space.sample()]], device=self.device, dtype=torch.long
             )
 
     def push_memory(self, transition: Transition):
