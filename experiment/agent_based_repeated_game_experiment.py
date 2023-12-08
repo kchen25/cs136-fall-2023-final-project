@@ -6,20 +6,22 @@ from typing import cast, Union, Optional
 import numpy as np
 import numpy.typing as npt
 import torch
-from experiment.enviornments.multi_agent_repeated_game import (
+
+from enviornments.multi_agent_repeated_game import (
     MultiAgentRepeatedGameEnvironment,
     ObsType,
     ActionType,
     PHI_EMPTY_ACTION,
 )
-from experiment.strategies.base_strategy import AbstractAgent
 
-from experiment.strategies.dqn_agent import DQNAgent
-from experiment.strategies.tft_agent import TFTAgent
-from replay_memory import Transition
-from experiment.experiment_args import ExperimentArgs
-from experiment.games import ipd_game
-from plotting import plot_scores
+from strategies.base_strategy import AbstractAgent
+from games import ipd_game
+
+from strategies.dqn_agent import DQNAgent
+from strategies.tft_agent import TFTAgent
+from pytorch_dqn.replay_memory import Transition
+from experiment_args import ExperimentArgs
+from utils.plotting import plot_scores
 
 NUM_AGENTS = 2  # ! DO NOT EDIT, NASHPY ONLY SUPPORTS 2 AGENTS
 
