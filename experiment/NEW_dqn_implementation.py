@@ -26,20 +26,10 @@ class Args:
     """if toggled, `torch.backends.cudnn.deterministic=False`"""
     cuda: bool = True
     """if toggled, cuda will be enabled by default"""
-    track: bool = False  # ! REMOVE
-    """if toggled, this experiment will be tracked with Weights and Biases"""  # ! REMOVE
-    wandb_project_name: str = "cleanRL"  # ! REMOVE
-    """the wandb's project name"""  # ! REMOVE
-    wandb_entity: Optional[str] = None  # ! REMOVE
-    """the entity (team) of wandb's project"""
     capture_video: bool = True
     """whether to capture videos of the agent performances (check out `videos` folder)"""
-    save_model: bool = False
+    save_model: bool = True
     """whether to save model into the `runs/{run_name}` folder"""
-    upload_model: bool = False
-    """whether to upload the saved model to huggingface"""
-    hf_entity: str = ""
-    """the user or org name of the model repository from the Hugging Face Hub"""
 
     # Algorithm specific arguments
     env_id: str = "CartPole-v1"
@@ -121,18 +111,6 @@ poetry run pip install "stable_baselines3==2.0.0a1"
     args = tyro.cli(Args)
     assert args.num_envs == 1, "vectorized envs are not supported at the moment"
     run_name = f"{args.env_id}__{args.exp_name}__{args.seed}__{int(time.time())}"
-    if args.track:
-        import wandb
-
-        wandb.init(
-            project=args.wandb_project_name,
-            entity=args.wandb_entity,
-            sync_tensorboard=True,
-            config=vars(args),
-            name=run_name,
-            monitor_gym=True,
-            save_code=True,
-        )
     writer = SummaryWriter(f"runs/{run_name}")
     writer.add_text(
         "hyperparameters",
@@ -275,20 +253,6 @@ poetry run pip install "stable_baselines3==2.0.0a1"
         )
         for idx, episodic_return in enumerate(episodic_returns):
             writer.add_scalar("eval/episodic_return", episodic_return, idx)
-
-        if args.upload_model:
-            from cleanrl_utils.huggingface import push_to_hub
-
-            repo_name = f"{args.env_id}-{args.exp_name}-seed{args.seed}"
-            repo_id = f"{args.hf_entity}/{repo_name}" if args.hf_entity else repo_name
-            push_to_hub(
-                args,
-                episodic_returns,
-                repo_id,
-                "DQN",
-                f"runs/{run_name}",
-                f"videos/{run_name}-eval",
-            )
 
     envs.close()
     writer.close()
