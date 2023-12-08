@@ -1,8 +1,7 @@
 import gymnasium as gym
 import math
 import random
-import matplotlib.pyplot as plt
-from typing import cast, Union, Generic, TypeVar
+from typing import Union, Generic
 
 import numpy as np
 import numpy.typing as npt
@@ -10,30 +9,9 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 
-from experiment.pytorch_dqn.replay_memory import ReplayMemory, Transition
-
-
-BATCH_SIZE = 128
-"""BATCH_SIZE is the number of transitions sampled from the replay buffer"""
-GAMMA = 0.99
-"""GAMMA is the discount factor as mentioned in the previous section"""
-EPS_START = 0.9  # ! Original was 0.9
-"""EPS_START is the starting value of epsilon"""
-EPS_END = 0.05
-"""EPS_END is the final value of epsilon"""
-EPS_DECAY = 1000
-"""EPS_DECAY controls the rate of exponential decay of epsilon, higher means a slower decay"""
-TAU = 0.005  # ! Original was 0.005
-"""TAU is the update rate of the target network"""
-LR = 2.5e-4
-"""LR is the learning rate of the ``AdamW`` optimizer"""
-
-NUM_EPISODES: int = 500
-"""NUM_EPISODES is the number of episodes for which to run the environment"""
-
-
-ObsType = TypeVar("ObsType", npt.NDArray[np.int64], npt.NDArray[np.float64])
-ActionType = np.int64
+from experiment.experiment_args import ExperimentArgs
+from experiment.strategies.base_strategy import AbstractAgent, ObsType, ActionType
+from replay_memory import ReplayMemory, Transition
 
 
 # ========== Neural Network Implementation ==========
@@ -74,11 +52,13 @@ def make_agent_network_for_env(
 # ========== Agent Implementation ==========
 
 
-class DQNAgent(Generic[ObsType]):
+class DQNAgent(AbstractAgent[ObsType]):
     device: torch.device  # Device
 
     env_observation_space: gym.spaces.Space[ObsType]  # Observation Space
     env_action_space: gym.spaces.Discrete  # Action Space
+
+    experiment_args: ExperimentArgs
 
     # Networks
     policy_net: DQN[ObsType]
@@ -90,12 +70,14 @@ class DQNAgent(Generic[ObsType]):
     # Training tracking
     steps_done: int
 
-    def __init__(self, env_observation_space: gym.spaces.Space[ObsType], env_action_space: gym.spaces.Discrete):
+    def __init__(self, env_observation_space: gym.spaces.Space[ObsType], env_action_space: gym.spaces.Discrete, experiment_args: ExperimentArgs):
         # if GPU is to be used
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
         self.env_observation_space = env_observation_space
         self.env_action_space = env_action_space
+
+        self.experiment_args = experiment_args
 
         self.policy_net = make_agent_network_for_env(
             self.env_observation_space, self.env_action_space
@@ -105,12 +87,17 @@ class DQNAgent(Generic[ObsType]):
         ).to(self.device)
         self.target_net.load_state_dict(self.policy_net.state_dict())
 
+        LR = self.experiment_args.learning_rate
         self.optimizer = optim.AdamW(self.policy_net.parameters(), lr=LR, amsgrad=True)
         self.memory = ReplayMemory(10000)
 
         self.steps_done = 0
 
     def select_action(self, state: torch.Tensor) -> torch.Tensor:
+        EPS_END = self.experiment_args.epsilon_end
+        EPS_START = self.experiment_args.epsilon_start
+        EPS_DECAY = self.experiment_args.epsilon_decay
+    
         global steps_done
         sample = random.random()
         eps_threshold = EPS_END + (EPS_START - EPS_END) * math.exp(
@@ -132,6 +119,9 @@ class DQNAgent(Generic[ObsType]):
         self.memory.push(transition)
 
     def optimize_model(self):
+        BATCH_SIZE = self.experiment_args.batch_size
+        GAMMA = self.experiment_args.gamma
+
         if len(self.memory) < BATCH_SIZE:
             return
         transitions = self.memory.sample(BATCH_SIZE)
@@ -184,6 +174,8 @@ class DQNAgent(Generic[ObsType]):
         self.optimizer.step()
 
     def soft_update_target_weights(self):
+        TAU = self.experiment_args.tau
+
         # Soft update of the target network's weights
         # θ′ ← τ θ + (1 −τ )θ′
         target_net_state_dict = self.target_net.state_dict()

@@ -6,7 +6,7 @@ class ExperimentArgs:
     # ===== DQN Agent Configuration =====
     batch_size = 128
     """batch_size is the number of transitions sampled from the replay buffer"""
-    gamme = 0.99
+    gamma = 0.99
     """gamma is the discount factor as mentioned in the previous section"""
     epsilon_start = 1  # ! Original was 0.9
     """epsilon_start is the starting value of epsilon"""

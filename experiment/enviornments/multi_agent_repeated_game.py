@@ -81,6 +81,7 @@ class MultiAgentRepeatedGameEnvironment(ParallelEnv[AgentID, ObsType, ActionType
 
     # ========== Environment run properties =========
     previous_plays: list[tuple[ActionType, ...]]
+    cumulative_agent_rewards: dict[AgentID, float]
 
     # === Repeated game properties ===
     round_number: int
@@ -89,7 +90,7 @@ class MultiAgentRepeatedGameEnvironment(ParallelEnv[AgentID, ObsType, ActionType
         self,
         game: nash.Game,
         agent_memory_length: int,
-        max_rounds: int = 10000,
+        max_rounds: int = 500,
         render_mode: Optional[str] = None,
     ):
         num_agents = len(game.payoff_matrices)
@@ -115,6 +116,12 @@ class MultiAgentRepeatedGameEnvironment(ParallelEnv[AgentID, ObsType, ActionType
         }
         return observations
 
+    def _make_infos(self) -> dict[AgentID, AgentInfo]:
+        return {
+            agent_id: {"total_reward": self.cumulative_agent_rewards[agent_id]}
+            for agent_id in self.agents
+        }
+
     def reset(
         self,
         seed: Optional[int] = None,
@@ -123,13 +130,12 @@ class MultiAgentRepeatedGameEnvironment(ParallelEnv[AgentID, ObsType, ActionType
         self.round_number = 0
         # TODO Fix type error
         self.previous_plays = np.asarray([])  # type: ignore
-
-        print(self.previous_plays)
+        self.cumulative_agent_rewards = {agent_id: 0 for agent_id in self.agents}
 
         observations = self._make_agent_observations()
 
         # Get dummy infos. Necessary for proper parallel_to_aec conversion
-        agent_infos: dict[AgentID, dict[str, Any]] = {a: {} for a in self.agents}
+        agent_infos: dict[AgentID, dict[str, Any]] = self._make_infos()
 
         return (observations, agent_infos)
 
@@ -163,8 +169,11 @@ class MultiAgentRepeatedGameEnvironment(ParallelEnv[AgentID, ObsType, ActionType
         ):  # Terminate after the last one, since the termination round is not counted for training
             truncations = {agent_id: True for agent_id in self.agents}
 
+        for agent_id in self.agents:
+            self.cumulative_agent_rewards[agent_id] += rewards[agent_id].item()
+
         # Get dummy infos. Necessary for proper parallel_to_aec conversion
-        agent_infos: dict[AgentID, dict[str, Any]] = {a: {} for a in self.agents}
+        agent_infos: dict[AgentID, dict[str, Any]] = self._make_infos()
 
         self.round_number += 1
 

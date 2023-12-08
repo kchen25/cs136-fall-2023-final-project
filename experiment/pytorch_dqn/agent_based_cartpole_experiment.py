@@ -6,10 +6,10 @@ from typing import cast, Union, Optional
 import numpy as np
 import numpy.typing as npt
 import torch
-from experiment.pytorch_dqn.dqn_agent import DQNAgent
 
-from experiment.pytorch_dqn.replay_memory import Transition
-from experiment.pytorch_dqn.experiment_args import ExperimentArgs
+from experiment.strategies.dqn_agent import DQNAgent
+from replay_memory import Transition
+from experiment.experiment_args import ExperimentArgs
 from plotting import plot_durations
 
 ObsType = npt.NDArray[Union[np.float64, np.int64]]
@@ -29,7 +29,9 @@ state, info = env.reset()
 env_observation_space = env.observation_space
 env_action_space = cast(gym.spaces.Discrete, env.action_space)
 
-agent = DQNAgent(env.observation_space, cast(gym.spaces.Discrete, env.action_space))
+agent = DQNAgent(
+    env.observation_space, cast(gym.spaces.Discrete, env.action_space), EXPERIMENT_ARGS
+)
 
 
 episode_durations: list[int] = []
@@ -52,7 +54,7 @@ for i_episode in range(num_episodes):
         action = agent.select_action(tensor_state)
         action_id = cast(np.int64, action.item())
         observation, reward, terminated, truncated, _ = env.step(action_id)
-        reward = torch.tensor([reward], device=device)
+        tensor_reward = torch.tensor([reward], device=device)
         done = terminated or truncated
 
         next_state: Optional[torch.Tensor] = None
@@ -64,7 +66,7 @@ for i_episode in range(num_episodes):
             ).unsqueeze(0)
 
         # Store the transition in memory
-        agent.push_memory(Transition(tensor_state, action, next_state, reward))
+        agent.push_memory(Transition(tensor_state, action, next_state, tensor_reward))
 
         # Move to the next state
         tensor_state = cast(

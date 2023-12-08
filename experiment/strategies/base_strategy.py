@@ -1,35 +1,41 @@
 from abc import ABC, abstractmethod
+from typing import Generic, TypeVar
 
-from experiment.environments.multi_agent_repeated_game import (
-    MultiAgentRepeatedGameEnvironment,
-    ActionType,
-    ObsType,
-    AgentID,
-)
+import torch
+import gymnasium as gym
+import numpy as np
+import numpy.typing as npt
+
+from experiment.experiment_args import ExperimentArgs
+from experiment.pytorch_dqn.replay_memory import Transition
+
+ObsType = TypeVar("ObsType", npt.NDArray[np.int64], npt.NDArray[np.float64])
+ActionType = np.int64
 
 
-class AbstractAgent(ABC):
-    env: MultiAgentRepeatedGameEnvironment
-    agent_id: int
+class AbstractAgent(ABC, Generic[ObsType]):
+    env_observation_space: gym.spaces.Space[ObsType]
+    env_action_space: gym.spaces.Discrete
+    experiment_args: ExperimentArgs
 
-    def __init__(self, env: MultiAgentRepeatedGameEnvironment, agent_id: int):
-        self.env = env
-        self.agent_id = agent_id
-
-    @abstractmethod
-    def pick_action(self) -> ActionType:
-        pass
-
-    @abstractmethod
-    def add_to_replay(
+    def __init__(
         self,
-        observation: dict[AgentID, ObsType],
-        action: dict[AgentID, ActionType],
-        reward: float,
-        post_action_observation: dict[AgentID, ObsType],
-    ) -> None:
+        env_observation_space: gym.spaces.Space[ObsType],
+        env_action_space: gym.spaces.Discrete,
+        experiment_args: ExperimentArgs,
+    ):
+        self.env_observation_space = env_observation_space
+        self.env_action_space = env_action_space
+        self.experiment_args = experiment_args
+
+    @abstractmethod
+    def select_action(self, state: torch.Tensor) -> torch.Tensor:
         pass
 
     @abstractmethod
-    def train_from_replay(self) -> None:
+    def push_memory(self, transition: Transition):
+        pass
+
+    @abstractmethod
+    def learn(self):
         pass
