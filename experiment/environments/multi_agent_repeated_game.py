@@ -9,7 +9,7 @@ import numpy as np
 import numpy.typing as npt
 
 ObsType = npt.NDArray[np.int64]
-ActionType = int
+ActionType = np.int64
 AgentID = int
 
 RepeatedGameEnvironmentOptions = dict[str, Any]
@@ -50,7 +50,7 @@ def make_observation_from_prev_plays(
 
 
 def get_game_rewards(game: nash.Game, actions: npt.NDArray[np.int64]):
-    offsetted_actions = tuple(actions - 1) # -1 to convert to 0-based index
+    offsetted_actions = tuple(actions - 1)  # -1 to convert to 0-based index
     rewards = [
         game.payoff_matrices[agent_id][offsetted_actions]
         for agent_id in range(len(game.payoff_matrices))
@@ -58,27 +58,26 @@ def get_game_rewards(game: nash.Game, actions: npt.NDArray[np.int64]):
     return rewards
 
 
-class RepeatedGameEnvironment(ParallelEnv[AgentID, ObsType, ActionType]):
+class MultiAgentRepeatedGameEnvironment(ParallelEnv[AgentID, ObsType, ActionType]):
     """Class representing a generic repeated game environment."""
 
     # ========== Base class properties (static) ==========
 
-    metadata = {
-        "name": "repeated_game_environment_v0",
-    }
+    metadata = {"name": "repeated_game_environment_v0", "render_modes": ["ansi"]}
 
     # ========== Game properties (changed only at creation) ==========
 
     # === Base class properties ===
     agents: list[AgentID]
     possible_agents: list[AgentID]
-    observation_spaces: dict[AgentID, ObsType]  # type: ignore # Observation space for each agent
-    action_spaces: dict[AgentID, ActionType]  # type: ignore # Action space for each agent
+    observation_spaces: dict[AgentID, spaces.MultiDiscrete]  # type: ignore # Observation space for each agent
+    action_spaces: dict[AgentID, spaces.Discrete]  # type: ignore # Action space for each agent
 
     # === Repeated game properties ===
     game: nash.Game
     agent_memory_length: int
     max_rounds: int
+    render_mode: Optional[str]
 
     # ========== Environment run properties =========
     previous_plays: list[tuple[ActionType, ...]]
@@ -87,7 +86,11 @@ class RepeatedGameEnvironment(ParallelEnv[AgentID, ObsType, ActionType]):
     round_number: int
 
     def __init__(
-        self, game: nash.Game, agent_memory_length: int, max_rounds: int = 10000
+        self,
+        game: nash.Game,
+        agent_memory_length: int,
+        max_rounds: int = 10000,
+        render_mode: Optional[str] = None,
     ):
         num_agents = len(game.payoff_matrices)
         num_actions = game.payoff_matrices[0].shape
@@ -103,6 +106,7 @@ class RepeatedGameEnvironment(ParallelEnv[AgentID, ObsType, ActionType]):
         self.game = game
         self.agent_memory_length = agent_memory_length
         self.max_rounds = max_rounds
+        self.render_mode = render_mode
 
     def _make_agent_observations(self) -> dict[AgentID, ObsType]:
         observations = {
@@ -139,9 +143,7 @@ class RepeatedGameEnvironment(ParallelEnv[AgentID, ObsType, ActionType]):
         dict[AgentID, bool],
         dict[AgentID, AgentInfo],
     ]:
-        array_actions = (
-            np.asarray([actions[agent_id] for agent_id in self.agents])
-        )
+        array_actions = np.asarray([actions[agent_id] for agent_id in self.agents])
         tuple_rewards = get_game_rewards(self.game, array_actions)
 
         self.previous_plays = (
@@ -156,7 +158,9 @@ class RepeatedGameEnvironment(ParallelEnv[AgentID, ObsType, ActionType]):
         terminations = {agent_id: False for agent_id in self.agents}
 
         truncations = {agent_id: False for agent_id in self.agents}
-        if self.round_number == self.max_rounds: # Terminate after the last one, since the termination round is not counted for training
+        if (
+            self.round_number == self.max_rounds
+        ):  # Terminate after the last one, since the termination round is not counted for training
             truncations = {agent_id: True for agent_id in self.agents}
 
         # Get dummy infos. Necessary for proper parallel_to_aec conversion
@@ -166,12 +170,13 @@ class RepeatedGameEnvironment(ParallelEnv[AgentID, ObsType, ActionType]):
 
         return (observations, rewards, terminations, truncations, agent_infos)
 
-    def render(self) -> None | str:
-        # TODO Render depending on the render mode. 'ansi' prints the text
-        pass
+    def render(self) -> None:
+        # 'ansi' mode prints text-based representation of the game
+        if self.render_mode == "ansi":
+            print(self.previous_plays)
 
-    def observation_space(self, agent: AgentID) -> ObsType:
+    def observation_space(self, agent: AgentID) -> spaces.MultiDiscrete:
         return self.observation_spaces[agent]
 
-    def action_space(self, agent: AgentID) -> ActionType:
+    def action_space(self, agent: AgentID) -> spaces.Discrete:
         return self.action_spaces[agent]
