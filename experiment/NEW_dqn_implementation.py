@@ -7,6 +7,7 @@ from typing import Optional
 
 import gymnasium as gym
 import numpy as np
+import numpy.typing as npt
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -62,31 +63,37 @@ class Args:
     """the frequency of training"""
 
 
-def make_env(env_id, seed, idx, capture_video, run_name):
-    def thunk():
-        if capture_video and idx == 0:
-            env = gym.make(env_id, render_mode="rgb_array")
-            env = gym.wrappers.RecordVideo(env, f"videos/{run_name}")
-        else:
-            env = gym.make(env_id)
-        env = gym.wrappers.RecordEpisodeStatistics(env)
-        env.action_space.seed(seed)
+# def make_env(env_id, seed, idx, capture_video, run_name):
+#     def thunk():
+#         if capture_video and idx == 0:
+#             env = gym.make(env_id, render_mode="rgb_array")
+#             env = gym.wrappers.RecordVideo(env, f"videos/{run_name}")
+#         else:
+#             env = gym.make(env_id)
+#         env = gym.wrappers.RecordEpisodeStatistics(env)
+#         env.action_space.seed(seed)
 
-        return env
+#         return env
 
-    return thunk
+#     return thunk
 
 
 # ALGO LOGIC: initialize agent here:
 class QNetwork(nn.Module):
-    def __init__(self, env):
+    def __init__(self, env: gym.Env[npt.NDArray[np.int64], np.int64]):
         super().__init__()
+
+        assert isinstance(env.action_space, gym.spaces.Discrete)
+
+        size_input_layer = np.array(env.observation_space.shape).prod()
+        size_output_layer = int(env.action_space.n)
+
         self.network = nn.Sequential(
-            nn.Linear(np.array(env.single_observation_space.shape).prod(), 120),
+            nn.Linear(size_input_layer, 120),
             nn.ReLU(),
             nn.Linear(120, 84),
             nn.ReLU(),
-            nn.Linear(84, env.single_action_space.n),
+            nn.Linear(84, size_output_layer),
         )
 
     def forward(self, x):
@@ -127,32 +134,36 @@ poetry run pip install "stable_baselines3==2.0.0a1"
     device = torch.device("cuda" if torch.cuda.is_available() and args.cuda else "cpu")
 
     # env setup
-    envs = gym.vector.SyncVectorEnv(
-        [
-            make_env(args.env_id, args.seed + i, i, args.capture_video, run_name)
-            for i in range(args.num_envs)
-        ]
-    )
+    # env = make_env(args.env_id, args.seed + i, i, args.capture_video, run_name)()
+
+    if args.capture_video:
+        env = gym.make(args.env_id, render_mode="rgb_array")
+        env = gym.wrappers.RecordVideo(env, f"videos/{run_name}")
+    else:
+        env = gym.make(args.env_id)
+    env = gym.wrappers.RecordEpisodeStatistics(env)
+    env.action_space.seed(args.seed)
+
     assert isinstance(
-        envs.single_action_space, gym.spaces.Discrete
+        env.action_space, gym.spaces.Discrete
     ), "only discrete action space is supported"
 
-    q_network = QNetwork(envs).to(device)
+    q_network = QNetwork(env).to(device)
     optimizer = optim.Adam(q_network.parameters(), lr=args.learning_rate)
-    target_network = QNetwork(envs).to(device)
+    target_network = QNetwork(env).to(device)
     target_network.load_state_dict(q_network.state_dict())
 
     rb = ReplayBuffer(
         args.buffer_size,
-        envs.single_observation_space,
-        envs.single_action_space,
+        env.observation_space,
+        env.action_space,
         device,
         handle_timeout_termination=False,
     )
     start_time = time.time()
 
     # TRY NOT TO MODIFY: start the game
-    obs, _ = envs.reset(seed=args.seed)
+    obs, _ = env.reset(seed=args.seed)
     for global_step in range(args.total_timesteps):
         # ALGO LOGIC: put action logic here
         epsilon = linear_schedule(
@@ -162,36 +173,57 @@ poetry run pip install "stable_baselines3==2.0.0a1"
             global_step,
         )
         if random.random() < epsilon:
-            actions = np.array(
-                [envs.single_action_space.sample() for _ in range(envs.num_envs)]
-            )
+            action = env.action_space.sample()
         else:
             q_values = q_network(torch.Tensor(obs).to(device))
-            actions = torch.argmax(q_values, dim=1).cpu().numpy()
+            action = (
+                torch.argmax(q_values).cpu().numpy().item()
+            )
 
         # TRY NOT TO MODIFY: execute the game and log data.
-        next_obs, rewards, terminations, truncations, infos = envs.step(actions)
+        next_obs, reward, termination, truncation, info = env.step(
+            action
+        )  # TODO Make sure this line is correct
+
+        # print(f"========== Round {global_step} ==========")
+        # print("===== Action and action item =====")
+        # print(action)
+        # print(action)
+        # print("===== next_obs =====")
+        # print(next_obs)
+        # print("===== reward =====")
+        # print(reward)
+        # print("===== termination =====")
+        # print(termination)
+        # print("===== truncation =====")
+        # print(truncation)
+        # print("===== info =====")
+        # print(info)
 
         # TRY NOT TO MODIFY: record rewards for plotting purposes
-        if "final_info" in infos:
-            for info in infos["final_info"]:
-                if info and "episode" in info:
-                    print(
-                        f"global_step={global_step}, episodic_return={info['episode']['r']}"
-                    )
-                    writer.add_scalar(
-                        "charts/episodic_return", info["episode"]["r"], global_step
-                    )
-                    writer.add_scalar(
-                        "charts/episodic_length", info["episode"]["l"], global_step
+        if info and "episode" in info:
+            print(
+                f"global_step={global_step}, episodic_return={info['episode']['r']}"
+            )
+            writer.add_scalar(
+                "charts/episodic_return",
+                info["episode"]["r"],
+                global_step,
+            )
+            writer.add_scalar(
+                "charts/episodic_length",
+                info["episode"]["l"],
+                global_step,
                     )
 
         # TRY NOT TO MODIFY: save data to reply buffer; handle `final_observation`
         real_next_obs = next_obs.copy()
-        for idx, trunc in enumerate(truncations):
-            if trunc:
-                real_next_obs[idx] = infos["final_observation"][idx]
-        rb.add(obs, real_next_obs, actions, rewards, terminations, infos)
+        # ! There is no "final_observation" in the info for a single environment of CartPole-v1
+        # if truncation:
+        #     print(info)
+        #     print(next_obs)
+        #     real_next_obs = info["final_observation"]
+        rb.add(obs, real_next_obs, np.array([action]), reward, termination, info)
 
         # TRY NOT TO MODIFY: CRUCIAL step easy to overlook
         obs = next_obs
@@ -201,11 +233,15 @@ poetry run pip install "stable_baselines3==2.0.0a1"
             if global_step % args.train_frequency == 0:
                 data = rb.sample(args.batch_size)
                 with torch.no_grad():
-                    target_max, _ = target_network(data.next_observations).max(dim=1)
+                    target_max, _ = target_network(data.next_observations).max(
+                        dim=1
+                    )  # TODO TODO Check
                     td_target = data.rewards.flatten() + args.gamma * target_max * (
                         1 - data.dones.flatten()
                     )
-                old_val = q_network(data.observations).gather(1, data.actions).squeeze()
+                old_val = (
+                    q_network(data.observations).gather(1, data.actions).squeeze()
+                )  # TODO TODO Check
                 loss = F.mse_loss(td_target, old_val)
 
                 if global_step % 100 == 0:
@@ -254,5 +290,5 @@ poetry run pip install "stable_baselines3==2.0.0a1"
         for idx, episodic_return in enumerate(episodic_returns):
             writer.add_scalar("eval/episodic_return", episodic_return, idx)
 
-    envs.close()
+    env.close()
     writer.close()
